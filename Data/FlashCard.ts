@@ -30,4 +30,28 @@ export const flashcards: Flashcard[] = [
     question: 'What is the speed of light?',
     answer: '299,792,458 metres per second in a vacuum',
   },
+  {
+    id: '5',
+    subjectId: '1',
+    question: 'What is the most abundant element in the Earth’s atmosphere?',
+    answer: 'Nitrogen — it makes up about 78% of the air we breathe',
+  },
+  {
+    id: '6',
+    subjectId: '1',
+    question: 'What is the pH of pure water?',
+    answer: '7 — This is considered neutral on the pH scale',
+  },
+  {
+    id: '7',
+    subjectId: '2',
+    question: 'What is the unit of electrical resistance?',
+    answer: 'Ohm (Ω) — named after German physicist Georg Simon Ohm',
+  },
+  {
+    id: '8',
+    subjectId: '2',
+    question: 'What are the three states of matter?',
+    answer: 'Solid, Liquid, and Gas — though Plasma is often considered the fourth',
+  },
 ]
