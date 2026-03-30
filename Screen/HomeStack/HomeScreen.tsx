@@ -8,6 +8,7 @@ import { Ionicons } from "@expo/vector-icons"
 import  SubjectCard  from '../subjectCard'
 
 
+
   
 
 const ContinueStudy = ({item}: {item: Subject}) => (
@@ -36,18 +37,18 @@ export default function HomeScreen() {
   const [subjectName, setSubjectName] = useState('')
   const [selectedIcon, setSelectedIcon] = useState('📚')
   const [subjectList, setSubjectList] = useState(subjects)
-  const [nameError, setNameError] = useState('')
+  // const [nameError, setNameError] = useState('')
 
   const deleteSubject = (id: string) => {
     setSubjectList(prev => prev.filter(item => item.id !== id))
   }
 
   const addSubject = () => {
-    let error
-    if (subjectName.trim().length < 2){
-      setNameError('Subject name is too short') 
-      return 
-    }  
+    // let error
+    // if (subjectName.trim().length < 2){
+    //   setNameError('Subject name is too short')
+    //   return
+    // }
 
     const newSubject: Subject = {
       id: Date.now().toString(), // unique id from timestamp
@@ -63,7 +64,7 @@ export default function HomeScreen() {
     setSubjectName('') // clear input
     setSelectedIcon('📚') // reset icon
     setModalVisible(false) // close modal
-    setNameError('')
+    // setNameError('')
   }
 
   const activeSessions = subjectList.filter(item => item.isStudying)
@@ -175,14 +176,14 @@ export default function HomeScreen() {
         placeholderTextColor="#555"
         value={subjectName}
         onChangeText={(text) => {
-        setSubjectName(text)
-         if (text.length >= 2) setNameError('') // clear error as they type
+         setSubjectName(text)
+          // if (text.length >= 2) setNameError('') // clear error as they type
         }}
         autoFocus
       />
-      {nameError !== '' && (
-      <Text style={styles.errorText}>{nameError}</Text>
-      )}
+      {/* {nameError !== '' && (
+        <Text style={styles.errorText}>{nameError}</Text>
+      )} */}
 
       {/* Buttons */}
       <Pressable style={styles.addButton} onPress={addSubject}>

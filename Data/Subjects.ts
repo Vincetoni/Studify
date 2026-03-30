@@ -1,3 +1,5 @@
+import { flashcards } from './FlashCard'
+
 export type Subject = {
   id: string
   name: string
@@ -6,7 +8,6 @@ export type Subject = {
   lastStudied: string
   isStudying?: boolean
   chapters?: number
-  onDelete?: () => void
 }
 
 export const subjects: Subject[] = [
@@ -14,40 +15,36 @@ export const subjects: Subject[] = [
     id: '1',
     name: 'Chemistry',
     icon: '🧑‍🔬',
-    cardCount: 12,
+    cardCount: flashcards.filter(f => f.subjectId === '1').length,
     lastStudied: '2 hours ago',
     isStudying: true,
     chapters: 5,
-    onDelete: () => {},    
   },
   {
     id: '2',
     name: 'Physics',
     icon: '📐',
-    cardCount: 8,
+    cardCount: flashcards.filter(f => f.subjectId === '2').length,
     lastStudied: 'Yesterday',
     isStudying: true,
-    chapters: 3, 
-    onDelete: () => {},   
+    chapters: 3,
   },
   {
     id: '3',
     name: 'Biology',
     icon: '🧬',
-    cardCount: 15,
+    cardCount: flashcards.filter(f => f.subjectId === '3').length,
     lastStudied: '3 days ago',
     isStudying: true,
-    chapters: 7, 
-    onDelete: () => {},  
+    chapters: 7,
   },
   {
     id: '4',
     name: 'Maths',
     icon: '🔢',
-    cardCount: 20,
+    cardCount: flashcards.filter(f => f.subjectId === '4').length,
     lastStudied: 'Today',
     isStudying: true,
     chapters: 10,
-    onDelete: () => {},
   },
 ]
