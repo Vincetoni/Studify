@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "646416022870",
+    "project_id": "studio-3914206569-3cfb5",
+    "storage_bucket": "studio-3914206569-3cfb5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:646416022870:android:ed01014a66dc5694c96af7",
+        "android_client_info": {
+          "package_name": "com.vincetoni.studify"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDw2Eem4Xo93U7kHN7Lk_NeAYoS25g2RLs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

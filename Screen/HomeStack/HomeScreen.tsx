@@ -76,6 +76,7 @@ export default function HomeScreen() {
     if (time < 18) return 'Good Afternoon 🌞'
     return 'Good Evening 🌙'
   }
+  const navigation = useNavigation<any>()
 
   return ( 
     <View style={styles.container}>
@@ -197,7 +198,6 @@ export default function HomeScreen() {
     </Pressable>  
   </Pressable>
 </Modal>
-
   </View>
 
   )
