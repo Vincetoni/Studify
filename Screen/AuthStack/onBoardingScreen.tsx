@@ -1,8 +1,9 @@
 import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigation, useRoute } from '@react-navigation/native'
 import { doc, updateDoc } from 'firebase/firestore'
 import { db, auth } from '../../firebaseConfig'
+import { getUserData } from '../../Service/userService'
 
 const SUBJECTS = ['📐 Math', '🧬 Biology', '🧪 Chemistry', '💻 Computer Science', '🌍 Geography', '📖 Literature', '🔢 Physics', '🎨 Art']
 const GOALS = [5, 10, 20, 30]
@@ -10,11 +11,12 @@ const STUDY_TIMES = ['🌅 Morning', '🌞 Afternoon', '🌙 Night', '⏱ Flexib
 const STUDY_STYLES = ['⚡ Quick sessions', '🧠 Deep focus', '🎮 Gamified', '📖 Chill learning']
 
 export default function OnBoardingScreen() {
+  const [ userData, setUserData ] = useState<any>(null)
   const navigation = useNavigation<any>()
   const route = useRoute<any>()
 
   const uid = auth.currentUser?.uid ?? ''
-  const username = auth.currentUser?.displayName ?? 'there'
+  const username = auth.currentUser?.displayName ?? userData?.username
 
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([])
   const [dailyGoal, setDailyGoal] = useState(10)
@@ -23,6 +25,22 @@ export default function OnBoardingScreen() {
 
   const [loading, setLoading] = useState(false)
   const [step, setStep] = useState(1)
+
+  useEffect(() =>{
+      const loadUser = async () => {
+        const uid = auth.currentUser?.uid;
+        if (!uid) return;
+  
+        const data = await getUserData(uid);
+        setUserData(data);
+      }
+  
+      loadUser();
+    },[]);
+    
+    if (!userData) {
+      return <Text style={{ flex: 1, justifyContent: 'center', alignItems: 'center', color: '#fff' }}>Loading...</Text>
+    }
 
   const toggleSubject = (subject: string) => {
     setSelectedSubjects(prev =>

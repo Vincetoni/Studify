@@ -3,9 +3,11 @@ import { subjects } from '../../Data/Subjects'
 import type { Subject } from '../../Data/Subjects'
 import { useNavigation } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Ionicons } from "@expo/vector-icons"
 import  SubjectCard  from '../subjectCard'
+import { auth } from '../../firebaseConfig'
+import { getUserData } from '../../Service/userService'
 
 
 
@@ -33,23 +35,34 @@ const ContinueStudy = ({item}: {item: Subject}) => (
 
 // ✅ HomeScreen is the main screen
 export default function HomeScreen() {
+  const [ userData, setUserData ] = useState<any>(null)
   const [modalVisible, setModalVisible] = useState(false)
   const [subjectName, setSubjectName] = useState('')
   const [selectedIcon, setSelectedIcon] = useState('📚')
   const [subjectList, setSubjectList] = useState(subjects)
-  // const [nameError, setNameError] = useState('')
+
+  useEffect(() =>{
+    const loadUser = async () => {
+      const uid = auth.currentUser?.uid;
+      if (!uid) return;
+
+      const data = await getUserData(uid);
+      setUserData(data);
+    }
+
+    loadUser();
+  },[]);
+  
+  if (!userData) {
+    return <Text style={{ flex: 1, justifyContent: 'center', alignItems: 'center', color: '#fff' }}>Loading...</Text>
+  }
 
   const deleteSubject = (id: string) => {
     setSubjectList(prev => prev.filter(item => item.id !== id))
   }
 
   const addSubject = () => {
-    // let error
-    // if (subjectName.trim().length < 2){
-    //   setNameError('Subject name is too short')
-    //   return
-    // }
-
+    
     const newSubject: Subject = {
       id: Date.now().toString(), // unique id from timestamp
       name: subjectName,
@@ -85,7 +98,7 @@ export default function HomeScreen() {
     <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
       <View>
         <Text style={styles.greeting}>{getGreeting()}</Text>
-        <Text style={styles.username}>Vincent</Text>
+        <Text style={styles.username}>{userData.username}</Text>
       </View>
       <View style={styles.streakBadge}>
         <Text style={styles.streakText}>🔥 7 days</Text>
@@ -96,10 +109,10 @@ export default function HomeScreen() {
     <ScrollView contentContainerStyle={styles.content}>
 
       <View style={styles.goalCard}>
-        <Text style={styles.goalLabel}>TODAY'S GOAL</Text>
-        <Text style={styles.goalText}>Complete 2 Study Sessions</Text>
+        <Text style={styles.goalLabel}>{userData.username}'s GOAL</Text>
+        <Text style={styles.goalText}>Complete {userData.dailyGoal} Sessions</Text>
         <View style={styles.progressBarBg}>
-          <View style={[styles.progressBarFill, { width: '40%' }]} />
+          <View style={[styles.progressBarFill, { width: `${userData.progress}%` }]} />
         </View>
         <Text style={styles.progressLabel}>1 of 2 Completed</Text>
       </View>
