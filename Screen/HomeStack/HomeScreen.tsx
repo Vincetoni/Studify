@@ -1,87 +1,82 @@
-import { View, Text, StyleSheet, ScrollView, FlatList, Pressable, Modal, TextInput } from 'react-native'
-import { subjects } from '../../Data/Subjects'
-import type { Subject } from '../../Data/Subjects'
+import {
+  View, Text, StyleSheet, ScrollView, FlatList,
+  Pressable, Modal, TextInput, ActivityIndicator
+} from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useState, useEffect } from 'react'
-import { Ionicons } from "@expo/vector-icons"
-import  SubjectCard  from '../subjectCard'
-import { auth } from '../../firebaseConfig'
-import { getUserData } from '../../Service/userService'
+import { Ionicons } from '@expo/vector-icons'
+import { auth, db } from '../../firebaseConfig'
+import { doc, onSnapshot } from 'firebase/firestore'
+import { getSubjects, addSubject, deleteSubject, FirestoreSubject } from '../../Service/subjectService'
+import SubjectCard from '../subjectCard'
 
-
-
-  
-
-const ContinueStudy = ({item}: {item: Subject}) => (
-     <View style={styles.card}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <View>
-                <Text style={styles.goalText}>
-                  {item.isStudying ? `${item.name} — Chapter ${item.chapters}` : '' } 
-                </Text>
-                <Text style={styles.progressLabel}>Last session: {item.lastStudied}</Text>
-            </View>
-            <View>
-            <Pressable style={styles.button}>
-                <Text style={styles.buttonText}>Resume</Text>
-            </Pressable>
-            </View>
+// ── Continue studying card ──────────────────────────────
+const ContinueStudy = ({ item, onPress }: { item: FirestoreSubject, onPress: () => void }) => (
+  <Pressable style={styles.card} onPress={onPress}>
+    <View style={styles.cardRow}>
+      <View style={styles.cardLeft}>
+        <Text style={styles.cardIcon}>{item.icon}</Text>
+        <View>
+          <Text style={styles.cardName}>{item.name}</Text>
+          <Text style={styles.cardMeta}>Last studied: {item.lastStudied}</Text>
         </View>
-     </View>
+      </View>
+      <View style={styles.resumeBtn}>
+        <Text style={styles.resumeBtnText}>Resume</Text>
+      </View>
+    </View>
+  </Pressable>
 )
 
-    
+// ── Dashboard tool card ─────────────────────────────────
+const ToolCard = ({ icon, label, soon }: { icon: string, label: string, soon?: boolean }) => (
+  <View style={styles.toolCard}>
+    <Text style={styles.toolIcon}>{icon}</Text>
+    <Text style={styles.toolLabel}>{label}</Text>
+    {soon && (
+      <View style={styles.soonBadge}>
+        <Text style={styles.soonText}>Soon</Text>
+      </View>
+    )}
+  </View>
+)
 
-// ✅ HomeScreen is the main screen
+// ── HomeScreen ──────────────────────────────────────────
 export default function HomeScreen() {
-  const [ userData, setUserData ] = useState<any>(null)
+  const navigation = useNavigation<any>()
+  const insets = useSafeAreaInsets()
+  const uid = auth.currentUser?.uid ?? ''
+
+  // state
+  const [userData, setUserData] = useState<any>(null)
+  const [subjectList, setSubjectList] = useState<FirestoreSubject[]>([])
+  const [loadingSubjects, setLoadingSubjects] = useState(true)
   const [modalVisible, setModalVisible] = useState(false)
   const [subjectName, setSubjectName] = useState('')
   const [selectedIcon, setSelectedIcon] = useState('📚')
-  const [subjectList, setSubjectList] = useState(subjects)
+  const [nameError, setNameError] = useState('')
 
-  useEffect(() =>{
-    const loadUser = async () => {
-      const uid = auth.currentUser?.uid;
-      if (!uid) return;
+  // real-time user data listener
+  useEffect(() => {
+    if (!uid) return
+    const ref = doc(db, 'users', uid)
+    const unsubscribe = onSnapshot(ref, (snap) => {
+      if (snap.exists()) setUserData(snap.data())
+    })
+    return () => unsubscribe()
+  }, [uid])
 
-      const data = await getUserData(uid);
-      setUserData(data);
+  // load subjects once on mount
+  useEffect(() => {
+    if (!uid) return
+    const load = async () => {
+      const subs = await getSubjects(uid)
+      setSubjectList(subs)
+      setLoadingSubjects(false)
     }
-
-    loadUser();
-  },[]);
-  
-  if (!userData) {
-    return <Text style={{ flex: 1, justifyContent: 'center', alignItems: 'center', color: '#fff' }}>Loading...</Text>
-  }
-
-  const deleteSubject = (id: string) => {
-    setSubjectList(prev => prev.filter(item => item.id !== id))
-  }
-
-  const addSubject = () => {
-    
-    const newSubject: Subject = {
-      id: Date.now().toString(), // unique id from timestamp
-      name: subjectName,
-      icon: selectedIcon,
-      cardCount: 0,
-      lastStudied: 'Never',
-      isStudying: false,
-      chapters: 0,
-    }
-
-    setSubjectList(prev => [...prev, newSubject]) // add to existing list
-    setSubjectName('') // clear input
-    setSelectedIcon('📚') // reset icon
-    setModalVisible(false) // close modal
-    // setNameError('')
-  }
-
-  const activeSessions = subjectList.filter(item => item.isStudying)
-  const insets = useSafeAreaInsets()
+    load()
+  }, [uid])
 
   const getGreeting = () => {
     const time = new Date().getHours()
@@ -89,130 +84,220 @@ export default function HomeScreen() {
     if (time < 18) return 'Good Afternoon 🌞'
     return 'Good Evening 🌙'
   }
-  const navigation = useNavigation<any>()
 
-  return ( 
+  const handleAddSubject = async () => {
+    if (subjectName.trim().length < 2) {
+      setNameError('Name must be at least 2 characters')
+      return
+    }
+    setNameError('')
+    await addSubject(uid, subjectName.trim(), selectedIcon)
+    const updated = await getSubjects(uid)
+    setSubjectList(updated)
+    setSubjectName('')
+    setSelectedIcon('📚')
+    setModalVisible(false)
+  }
+
+  const handleDeleteSubject = async (subjectId: string) => {
+    await deleteSubject(uid, subjectId)
+    setSubjectList(prev => prev.filter(s => s.id !== subjectId))
+  }
+
+  const activeSessions = subjectList.filter(
+    s => s.lastStudied && s.lastStudied !== 'Never'
+  )
+
+  const progressPercent = userData
+    ? Math.min((userData.progress ?? 0) / (userData.dailyGoal ?? 10) * 100, 100)
+    : 0
+
+  // loading state
+  if (!userData) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#6C63FF" />
+      </View>
+    )
+  }
+
+  return (
     <View style={styles.container}>
 
-    {/* Fixed header */}
-    <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-      <View>
-        <Text style={styles.greeting}>{getGreeting()}</Text>
-        <Text style={styles.username}>{userData.username}</Text>
-      </View>
-      <View style={styles.streakBadge}>
-        <Text style={styles.streakText}>🔥 7 days</Text>
-      </View>
-    </View>
-
-    {/* Scrollable body */}
-    <ScrollView contentContainerStyle={styles.content}>
-
-      <View style={styles.goalCard}>
-        <Text style={styles.goalLabel}>{userData.username}'s GOAL</Text>
-        <Text style={styles.goalText}>Complete {userData.dailyGoal} Sessions</Text>
-        <View style={styles.progressBarBg}>
-          <View style={[styles.progressBarFill, { width: `${userData.progress}%` }]} />
+      {/* Fixed header */}
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+        <View>
+          <Text style={styles.greeting}>{getGreeting()}</Text>
+          <Text style={styles.username}>{userData.username}</Text>
         </View>
-        <Text style={styles.progressLabel}>1 of 2 Completed</Text>
+        <Pressable style={styles.streakBadge}>
+          <Text style={styles.streakText}>
+            🔥 {userData.streak ?? 0} days
+          </Text>
+        </Pressable>
       </View>
 
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
 
-      <View style={styles.subjectsSection}>
-     <View style={styles.subjectsSection}>
-       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-       <Text style={styles.subjectHeader}>YOUR SUBJECTS</Text>
-       <Pressable onPress={() => setModalVisible(true)}>
-       <Ionicons name="add-circle" size={28} color="#6C63FF" />
-       </Pressable>
-     </View>  
-   </View>
-        <FlatList
-          horizontal
-          data={subjectList}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <SubjectCard item={item} onDelete={() => deleteSubject(item.id)} />
+        {/* Goal card */}
+        <View style={styles.goalCard}>
+          <View style={styles.goalCardTop}>
+            <Text style={styles.goalLabel}>TODAY'S GOAL</Text>
+            <Text style={styles.goalCount}>
+              {userData.progress ?? 0}/{userData.dailyGoal ?? 10}
+            </Text>
+          </View>
+          <Text style={styles.goalText}>
+            Complete {userData.dailyGoal ?? 10} study sessions
+          </Text>
+          <View style={styles.progressBarBg}>
+            <View style={[
+              styles.progressBarFill,
+              { width: `${progressPercent}%` }
+            ]} />
+          </View>
+          <Text style={styles.progressLabel}>
+            {progressPercent === 100 ? 'Goal complete! 🎉' : `${Math.round(progressPercent)}% done`}
+          </Text>
+        </View>
+
+        {/* Subjects section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>YOUR SUBJECTS</Text>
+            <Pressable onPress={() => setModalVisible(true)}>
+              <Ionicons name="add-circle" size={26} color="#6C63FF" />
+            </Pressable>
+          </View>
+
+          {loadingSubjects ? (
+            <ActivityIndicator color="#6C63FF" style={{ marginTop: 8 }} />
+          ) : (
+            <FlatList
+              horizontal
+              data={subjectList}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <SubjectCard
+                  item={item}
+                  onDelete={() => handleDeleteSubject(item.id)}
+                />
+              )}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 12, paddingVertical: 4 }}
+              ListEmptyComponent={
+                <Pressable
+                  style={styles.emptySubjects}
+                  onPress={() => setModalVisible(true)}
+                >
+                  <Ionicons name="add-circle-outline" size={28} color="#555" />
+                  <Text style={styles.emptyText}>Add your first subject</Text>
+                </Pressable>
+              }
+            />
           )}
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: 16 }}
-        />
-      </View>
+        </View>
 
-      <View style={styles.subjectsSection}>
-        <Text style={styles.subjectHeader}>CONTINUE STUDYING</Text>
-        <FlatList
-          scrollEnabled={false}
-          data={activeSessions}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <ContinueStudy item={item} />}
-          contentContainerStyle={{ gap: 16 }}
-        />
-      </View>
+        {/* Continue studying — only shows if any subject has been studied */}
+        {activeSessions.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>CONTINUE STUDYING</Text>
+            </View>
+            <FlatList
+              scrollEnabled={false}
+              data={activeSessions}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <ContinueStudy
+                  item={item}
+                  onPress={() => navigation.navigate('Home', {
+                    screen: 'Subject',
+                    params: { subject: item }
+                  })}
+                />
+              )}
+              contentContainerStyle={{ gap: 12 }}
+            />
+          </View>
+        )}
 
-    </ScrollView>
-    <Modal
-  visible={modalVisible}
-  transparent
-  animationType="fade"
-  onRequestClose={() => setModalVisible(false)}
->
-  {/* Dark overlay */}
-  <Pressable style={styles.overlay} onPress={() => setModalVisible(false)}>
+        {/* Dashboard — tools placeholder */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>TOOLS</Text>
+          </View>
+          <View style={styles.toolsGrid}>
+            <ToolCard icon="🤖" label="AI Tutor" soon />
+            <ToolCard icon="📄" label="PDF to Cards" soon />
+            <ToolCard icon="🎮" label="Practice" soon />
+            <ToolCard icon="📊" label="Stats" soon />
+          </View>
+        </View>
 
-    {/* Modal card — stop press from closing when tapping inside */}
-    <Pressable style={styles.modalCard} onPress={(e) => e.stopPropagation()}>
+      </ScrollView>
 
-      <Text style={styles.modalTitle}>Add Subject</Text>
+      {/* Add subject modal */}
+      <Modal
+        visible={modalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <Pressable style={styles.overlay} onPress={() => setModalVisible(false)}>
+          <Pressable style={styles.modalCard} onPress={(e) => e.stopPropagation()}>
 
-      {/* Icon picker */}
-      <Text style={styles.modalLabel}>Pick an icon</Text>
-      <View style={styles.iconRow}>
-        {['📚', '📐', '🧬', '🔢', '🎨', '🧪', '💻', '🌍'].map((emoji) => (
-          <Pressable
-            key={emoji}
-            style={[
-              styles.iconOption,
-              selectedIcon === emoji && styles.iconSelected
-            ]}
-            onPress={() => setSelectedIcon(emoji)}
-          >
-            <Text style={styles.iconEmoji}>{emoji}</Text>
+            <Text style={styles.modalTitle}>Add Subject</Text>
+
+            <Text style={styles.modalLabel}>Pick an icon</Text>
+            <View style={styles.iconRow}>
+              {['📚', '📐', '🧬', '🔢', '🎨', '🧪', '💻', '🌍', '🏛', '🎵'].map((emoji) => (
+                <Pressable
+                  key={emoji}
+                  style={[
+                    styles.iconOption,
+                    selectedIcon === emoji && styles.iconSelected
+                  ]}
+                  onPress={() => setSelectedIcon(emoji)}
+                >
+                  <Text style={styles.iconEmoji}>{emoji}</Text>
+                </Pressable>
+              ))}
+            </View>
+
+            <Text style={styles.modalLabel}>Subject name</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="e.g. Mathematics"
+              placeholderTextColor="#555"
+              value={subjectName}
+              onChangeText={(text) => {
+                setSubjectName(text)
+                if (text.length >= 2) setNameError('')
+              }}
+              autoFocus
+            />
+
+            {nameError !== '' && (
+              <Text style={styles.errorText}>{nameError}</Text>
+            )}
+
+            <Pressable style={styles.addButton} onPress={handleAddSubject}>
+              <Text style={styles.addButtonText}>Add Subject</Text>
+            </Pressable>
+
+            <Pressable onPress={() => setModalVisible(false)}>
+              <Text style={styles.cancelText}>Cancel</Text>
+            </Pressable>
+
           </Pressable>
-        ))}
-      </View>
+        </Pressable>
+      </Modal>
 
-      {/* Text input */}
-      <Text style={styles.modalLabel}>Subject name</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="e.g. Mathematics"
-        placeholderTextColor="#555"
-        value={subjectName}
-        onChangeText={(text) => {
-         setSubjectName(text)
-          // if (text.length >= 2) setNameError('') // clear error as they type
-        }}
-        autoFocus
-      />
-      {/* {nameError !== '' && (
-        <Text style={styles.errorText}>{nameError}</Text>
-      )} */}
-
-      {/* Buttons */}
-      <Pressable style={styles.addButton} onPress={addSubject}>
-        <Text style={styles.addButtonText}>Add Subject</Text>
-      </Pressable>
-
-      <Pressable onPress={() => setModalVisible(false)}>
-        <Text style={styles.cancelText}>Cancel</Text>
-      </Pressable>
-
-    </Pressable>  
-  </Pressable>
-</Modal>
-  </View>
-
+    </View>
   )
 }
 
@@ -221,26 +306,29 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#0f0f0f',
   },
-  content: {
-    padding: 20,
-    paddingTop: 20,
-    gap: 24,
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: '#0f0f0f',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingBottom: 12,
     backgroundColor: '#0f0f0f',
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#1a1a1a',
   },
   greeting: {
-    fontSize: 14,
-    color: '#888888',
+    fontSize: 13,
+    color: '#666666',
     marginBottom: 2,
   },
   username: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '700',
     color: '#ffffff',
   },
@@ -248,24 +336,43 @@ const styles = StyleSheet.create({
     backgroundColor: '#1a1a2e',
     paddingVertical: 8,
     paddingHorizontal: 14,
-    borderRadius: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#2a2a4e',
   },
   streakText: {
     color: '#6C63FF',
     fontSize: 13,
     fontWeight: '600',
   },
+  content: {
+    padding: 20,
+    gap: 28,
+    paddingBottom: 40,
+  },
   goalCard: {
     backgroundColor: '#1a1a2e',
     borderRadius: 16,
     padding: 20,
     gap: 10,
+    borderWidth: 1,
+    borderColor: '#2a2a3e',
+  },
+  goalCardTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   goalLabel: {
     fontSize: 11,
     fontWeight: '700',
     color: '#6C63FF',
     letterSpacing: 1,
+  },
+  goalCount: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#6C63FF',
   },
   goalText: {
     fontSize: 16,
@@ -286,120 +393,187 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#888888',
   },
-  subjectsSection: {
-    gap: 12,
+  section: {
+    gap: 14,
   },
-  subjectHeader: {
-    fontSize: 14,
-    fontWeight: '900',
-    color: '#ffffff',
-  },
-  subjectCard: {
-    backgroundColor: '#1a1a2e',
-    borderRadius: 16,
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    width: 120,
-    padding: 20,
-    gap: 5,
   },
-  subjectIcon: {
-    fontSize: 28,
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#666666',
+    letterSpacing: 1.5,
   },
-  subjectName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#ffffff',
+  emptySubjects: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#1a1a2e',
+    borderRadius: 14,
+    paddingVertical: 20,
+    paddingHorizontal: 24,
+    borderWidth: 1,
+    borderColor: '#222235',
+    borderStyle: 'dashed',
   },
-  subjectLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#888888',
-    letterSpacing: 1,
+  emptyText: {
+    color: '#555555',
+    fontSize: 14,
   },
   card: {
     backgroundColor: '#1a1a2e',
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#222235',
   },
-  button: {
+  cardRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  cardLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  cardIcon: {
+    fontSize: 28,
+  },
+  cardName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#ffffff',
+  },
+  cardMeta: {
+    fontSize: 12,
+    color: '#666666',
+    marginTop: 2,
+  },
+  resumeBtn: {
     backgroundColor: '#6C63FF',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
     borderRadius: 8,
   },
-  buttonText: {
+  resumeBtnText: {
     color: '#ffffff',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
   },
+  toolsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  toolCard: {
+    backgroundColor: '#1a1a2e',
+    borderRadius: 14,
+    padding: 16,
+    width: '47%',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#222235',
+  },
+  toolIcon: {
+    fontSize: 28,
+  },
+  toolLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#aaaaaa',
+  },
+  soonBadge: {
+    backgroundColor: '#2a2a3e',
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+  },
+  soonText: {
+    fontSize: 10,
+    color: '#6C63FF',
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
   overlay: {
-  flex: 1,
-  backgroundColor: 'rgba(0,0,0,0.7)',
-  justifyContent: 'center',
-  alignItems: 'center',
-},
-modalCard: {
-  backgroundColor: '#1a1a2e',
-  borderRadius: 20,
-  padding: 24,
-  width: '85%',
-  gap: 12,
-},
-modalTitle: {
-  fontSize: 20,
-  fontWeight: '700',
-  color: '#ffffff',
-  marginBottom: 4,
-},
-modalLabel: {
-  fontSize: 12,
-  color: '#888888',
-  fontWeight: '600',
-  letterSpacing: 1,
-},
-iconRow: {
-  flexDirection: 'row',
-  flexWrap: 'wrap',
-  gap: 8,
-},
-iconOption: {
-  padding: 8,
-  borderRadius: 10,
-  backgroundColor: '#0f0f0f',
-},
-iconSelected: {
-  backgroundColor: '#6C63FF',
-},
-iconEmoji: {
-  fontSize: 24,
-},
-input: {
-  backgroundColor: '#0f0f0f',
-  borderRadius: 10,
-  padding: 14,
-  color: '#ffffff',
-  fontSize: 16,
-},
-addButton: {
-  backgroundColor: '#6C63FF',
-  borderRadius: 12,
-  padding: 16,
-  alignItems: 'center',
-  marginTop: 4,
-},
-addButtonText: {
-  color: '#ffffff',
-  fontSize: 16,
-  fontWeight: '600',
-},
-cancelText: {
-  color: '#888888',
-  textAlign: 'center',
-  fontSize: 14,
-},
-errorText: {
-  color: '#ff3333',
-  fontSize: 14,
-  marginTop: -4,
-},
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalCard: {
+    backgroundColor: '#141420',
+    borderRadius: 20,
+    padding: 24,
+    width: '88%',
+    gap: 12,
+    borderWidth: 1,
+    borderColor: '#1e1e30',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  modalLabel: {
+    fontSize: 11,
+    color: '#666666',
+    fontWeight: '700',
+    letterSpacing: 1,
+  },
+  iconRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  iconOption: {
+    padding: 10,
+    borderRadius: 10,
+    backgroundColor: '#0f0f0f',
+    borderWidth: 1,
+    borderColor: '#222222',
+  },
+  iconSelected: {
+    backgroundColor: '#6C63FF',
+    borderColor: '#6C63FF',
+  },
+  iconEmoji: {
+    fontSize: 22,
+  },
+  input: {
+    backgroundColor: '#0f0f0f',
+    borderRadius: 10,
+    padding: 14,
+    color: '#ffffff',
+    fontSize: 15,
+    borderWidth: 1,
+    borderColor: '#222222',
+  },
+  errorText: {
+    color: '#ff4d4d',
+    fontSize: 13,
+  },
+  addButton: {
+    backgroundColor: '#6C63FF',
+    borderRadius: 12,
+    padding: 15,
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  addButtonText: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  cancelText: {
+    color: '#555555',
+    textAlign: 'center',
+    fontSize: 14,
+    paddingVertical: 4,
+  },
 })

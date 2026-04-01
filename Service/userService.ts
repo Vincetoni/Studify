@@ -1,13 +1,17 @@
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../firebaseConfig';
+import { doc, onSnapshot, getDoc } from 'firebase/firestore'
+import { db } from '../firebaseConfig'
 
-export const getUserData = async (uid:string) => {
-    const ref = doc(db, 'users', uid);
-    const snap = await getDoc(ref);
+// real-time listener version
+export const listenToUserData = (uid: string, callback: (data: any) => void) => {
+  const ref = doc(db, 'users', uid)
+  return onSnapshot(ref, (snap) => {
+    if (snap.exists()) callback(snap.data())
+  })
+}
 
-    if(snap.exists()) {
-        return snap.data();
-    } else {
-        return null;
-    }
-};
+// keep getDoc version for one-time fetches
+export const getUserData = async (uid: string) => {
+  const ref = doc(db, 'users', uid)
+  const snap = await getDoc(ref)
+  return snap.exists() ? snap.data() : null
+}

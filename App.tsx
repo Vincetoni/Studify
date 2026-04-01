@@ -18,6 +18,7 @@ import StudyModeScreen from './Screen/HomeStack/StudyModeScreen'
 import SignupScreen from './Screen/AuthStack/SignupScreen'
 import LoginScreen from './Screen/AuthStack/LoginScreen'
 import OnBoardingScreen from './Screen/AuthStack/onBoardingScreen'
+import WelcomeScreen from './Screen/AuthStack/WelcomeScreen'
 
 type RootStackParamList = {
   Auth: undefined;
@@ -30,6 +31,7 @@ type RootStackParamList = {
 };
 
 type AuthStackParamList = {
+  Welcome: undefined;
   Signup: undefined;
   Login: undefined;
   OnBoarding: { 
@@ -94,6 +96,7 @@ function MainTab() {
 function AuthStackScreen() {
   return (
     <AuthStack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#0f0f0f' } }}>
+      <AuthStack.Screen name="Welcome" component={WelcomeScreen} />
       <AuthStack.Screen name="Signup" component={SignupScreen} />
       <AuthStack.Screen name="OnBoarding" component={OnBoardingScreen} />
       <AuthStack.Screen name="Login" component={LoginScreen} />

@@ -1,10 +1,12 @@
 import { View, Text, StyleSheet, Pressable } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import { Ionicons } from '@expo/vector-icons'
-import type { Subject } from '../Data/Subjects'
+import type { FirestoreSubject } from '../Service/subjectService'
 
-
-const SubjectCard = ({ item, onDelete }: { item: Subject, onDelete: () => void }) => {
+const SubjectCard = ({ item, onDelete }: {
+  item: FirestoreSubject
+  onDelete: () => void
+}) => {
   const navigation = useNavigation<any>()
   
 
