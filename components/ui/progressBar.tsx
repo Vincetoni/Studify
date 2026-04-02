@@ -1,23 +1,23 @@
-import { View } from 'react-native'
+import { View } from 'react-native';
 
 type Props = {
-  total: number
-  currentIndex: number
-  progress: ('correct' | 'wrong' | 'unanswered')[]
-}
+  total: number;
+  currentIndex: number;
+  progress: ('correct' | 'wrong' | 'unanswered')[];
+};
 
 const ProgressBar = ({ total = 1, currentIndex = 0, progress = [] }: Props) => {
   return (
     <View style={{ flexDirection: 'row', gap: 4, paddingHorizontal: 24 }}>
       {Array.from({ length: total }).map((_, index) => {
-        let backgroundColor = '#1a1a2e'
+        let backgroundColor = '#1a1a2e';
 
         if (progress[index] === 'correct') {
-          backgroundColor = '#22c55e'
+          backgroundColor = '#22c55e';
         } else if (progress[index] === 'wrong') {
-          backgroundColor = '#ef4444'
+          backgroundColor = '#ef4444';
         } else if (index === currentIndex) {
-          backgroundColor = '#6C63FF'
+          backgroundColor = '#6C63FF';
         }
 
         return (
@@ -30,10 +30,10 @@ const ProgressBar = ({ total = 1, currentIndex = 0, progress = [] }: Props) => {
               borderRadius: 2,
             }}
           />
-        )
+        );
       })}
     </View>
-  )
-}
+  );
+};
 
-export default ProgressBar
+export default ProgressBar;

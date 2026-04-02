@@ -1,75 +1,134 @@
-import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native'
-import { useState, useEffect } from 'react'
-import { useNavigation, useRoute } from '@react-navigation/native'
-import { doc, updateDoc } from 'firebase/firestore'
-import { db, auth } from '../../firebaseConfig'
-import { getUserData } from '../../Service/userService'
+import {
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  ActivityIndicator,
+} from 'react-native';
+import { useState, useEffect } from 'react';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db, auth } from '../../firebaseConfig';
+import { getUserData } from '../../Service/userService';
+import { addSubject } from '../../Service/subjectService';
 
-const SUBJECTS = ['📐 Math', '🧬 Biology', '🧪 Chemistry', '💻 Computer Science', '🌍 Geography', '📖 Literature', '🔢 Physics', '🎨 Art']
-const GOALS = [5, 10, 20, 30]
-const STUDY_TIMES = ['🌅 Morning', '🌞 Afternoon', '🌙 Night', '⏱ Flexible']
-const STUDY_STYLES = ['⚡ Quick sessions', '🧠 Deep focus', '🎮 Gamified', '📖 Chill learning']
+const SUBJECTS = [
+  '📐 Math',
+  '🧬 Biology',
+  '🧪 Chemistry',
+  '💻 Computer Science',
+  '🌍 Geography',
+  '📖 Literature',
+  '🔢 Physics',
+  '🎨 Art',
+];
+const GOALS = [5, 10, 20, 30];
+const STUDY_TIMES = ['🌅 Morning', '🌞 Afternoon', '🌙 Night', '⏱ Flexible'];
+const STUDY_STYLES = [
+  '⚡ Quick sessions',
+  '🧠 Deep focus',
+  '🎮 Gamified',
+  '📖 Chill learning',
+];
 
 export default function OnBoardingScreen() {
-  const [ userData, setUserData ] = useState<any>(null)
-  const navigation = useNavigation<any>()
-  const route = useRoute<any>()
+  const [userData, setUserData] = useState<any>(null);
+  const navigation = useNavigation<any>();
+  const route = useRoute<any>();
 
-  const uid = auth.currentUser?.uid ?? ''
-  const username = auth.currentUser?.displayName ?? userData?.username
+  const uid = auth.currentUser?.uid ?? '';
+  const username = auth.currentUser?.displayName ?? userData?.username;
 
-  const [selectedSubjects, setSelectedSubjects] = useState<string[]>([])
-  const [dailyGoal, setDailyGoal] = useState(10)
-  const [studyTime, setStudyTime] = useState('⏱ Flexible')
-  const [studyStyle, setStudyStyle] = useState('⚡ Quick sessions')
+  const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
+  const [dailyGoal, setDailyGoal] = useState(10);
+  const [studyTime, setStudyTime] = useState('⏱ Flexible');
+  const [studyStyle, setStudyStyle] = useState('⚡ Quick sessions');
 
-  const [loading, setLoading] = useState(false)
-  const [step, setStep] = useState(1)
+  const [loading, setLoading] = useState(false);
+  const [step, setStep] = useState(1);
 
-  useEffect(() =>{
-      const loadUser = async () => {
-        const uid = auth.currentUser?.uid;
-        if (!uid) return;
-  
-        const data = await getUserData(uid);
-        setUserData(data);
-      }
-  
-      loadUser();
-    },[]);
-    
-    if (!userData) {
-      return <Text style={{ flex: 1, justifyContent: 'center', alignItems: 'center', color: '#fff' }}>Loading...</Text>
-    }
+  useEffect(() => {
+    const loadUser = async () => {
+      const uid = auth.currentUser?.uid;
+      if (!uid) return;
 
-  const toggleSubject = (subject: string) => {
-    setSelectedSubjects(prev =>
-      prev.includes(subject)
-        ? prev.filter(s => s !== subject)
-        : [...prev, subject]
-    )
+      const data = await getUserData(uid);
+      setUserData(data);
+    };
+
+    loadUser();
+  }, []);
+
+  if (!userData) {
+    return (
+      <Text
+        style={{
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          color: '#fff',
+        }}
+      >
+        Loading...
+      </Text>
+    );
   }
 
-  const handleFinish = async () => {
-    if (selectedSubjects.length === 0 || !uid) return
+  const toggleSubject = (subject: string) => {
+    setSelectedSubjects((prev) =>
+      prev.includes(subject)
+        ? prev.filter((s) => s !== subject)
+        : [...prev, subject],
+    );
+  };
 
-    setLoading(true)
+  const handleFinish = async () => {
+    const getPalFromStyle = (style: string) => {
+      if (style.includes('Quick')) return 'zippy';
+      if (style.includes('Deep')) return 'sage';
+      if (style.includes('Gamified')) return 'bubbles';
+      return 'zippy';
+    };
+
+    setLoading(true);
     try {
+      console.log('Starting onboarding save...');
       await updateDoc(doc(db, 'users', uid), {
         onboardingCompleted: true,
         selectedSubjects,
         dailyGoal,
         studyTime,
         studyStyle,
-      })
+        studyPal: getPalFromStyle(studyStyle),
+      });
+      console.log('Onboarding saved to Firestore');
 
-      route.params?.onComplete?.()
+      // create a subject document for each subject they picked
+      for (const subject of selectedSubjects) {
+        const parts = subject.split(' ');
+        const icon = parts[0];
+        const name = parts.slice(1).join(' ');
+        await addSubject(uid, name, icon);
+      }
+      console.log('Subjects added');
+
+      if (route.params?.onComplete) {
+        console.log('Calling onComplete callback (logged-in user)');
+        navigation.replace('Processing', {
+          onComplete: route.params?.onComplete,
+        });
+      } else {
+        console.log('Navigating to Processing (new user)');
+        navigation.replace('Processing', {
+          onComplete: route.params?.onComplete,
+        });
+      }
     } catch (err: any) {
-      console.log('Onboarding error:', err.message)
+      console.log('Onboarding error:', err.message);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   // STEP 1 — Welcome
   if (step === 1) {
@@ -77,12 +136,14 @@ export default function OnBoardingScreen() {
       <View style={styles.container}>
         <Text style={styles.emoji}>👋</Text>
         <Text style={styles.title}>Welcome, {username}!</Text>
-        <Text style={styles.subtitle}>Let's set up your Studify experience in just a few steps</Text>
+        <Text style={styles.subtitle}>
+          Let's set up your Studify experience in just a few steps
+        </Text>
         <Pressable style={styles.button} onPress={() => setStep(2)}>
           <Text style={styles.buttonText}>Get started</Text>
         </Pressable>
       </View>
-    )
+    );
   }
 
   // STEP 2 — Subjects
@@ -93,19 +154,23 @@ export default function OnBoardingScreen() {
         <Text style={styles.subtitle}>Pick all that apply</Text>
 
         <View style={styles.subjectGrid}>
-          {SUBJECTS.map(subject => (
+          {SUBJECTS.map((subject) => (
             <Pressable
               key={subject}
               style={[
                 styles.subjectChip,
-                selectedSubjects.includes(subject) && styles.subjectChipSelected
+                selectedSubjects.includes(subject) &&
+                  styles.subjectChipSelected,
               ]}
               onPress={() => toggleSubject(subject)}
             >
-              <Text style={[
-                styles.subjectChipText,
-                selectedSubjects.includes(subject) && styles.subjectChipTextSelected
-              ]}>
+              <Text
+                style={[
+                  styles.subjectChipText,
+                  selectedSubjects.includes(subject) &&
+                    styles.subjectChipTextSelected,
+                ]}
+              >
                 {subject}
               </Text>
             </Pressable>
@@ -113,7 +178,11 @@ export default function OnBoardingScreen() {
         </View>
 
         <Pressable
-          style={[styles.button, selectedSubjects.length === 0 && styles.buttonDisabled]}
+          style={[
+            styles.button,
+            selectedSubjects.length === 0 && styles.buttonDisabled,
+          ]}
+          disabled={selectedSubjects.length === 0}
           onPress={() => setStep(3)}
         >
           <Text style={styles.buttonText}>
@@ -121,7 +190,7 @@ export default function OnBoardingScreen() {
           </Text>
         </Pressable>
       </View>
-    )
+    );
   }
 
   // STEP 3 — Daily Goal
@@ -132,25 +201,29 @@ export default function OnBoardingScreen() {
         <Text style={styles.subtitle}>How many cards per day?</Text>
 
         <View style={styles.goalGrid}>
-          {GOALS.map(goal => (
+          {GOALS.map((goal) => (
             <Pressable
               key={goal}
               style={[
                 styles.goalChip,
-                dailyGoal === goal && styles.goalChipSelected
+                dailyGoal === goal && styles.goalChipSelected,
               ]}
               onPress={() => setDailyGoal(goal)}
             >
-              <Text style={[
-                styles.goalNumber,
-                dailyGoal === goal && styles.goalNumberSelected
-              ]}>
+              <Text
+                style={[
+                  styles.goalNumber,
+                  dailyGoal === goal && styles.goalNumberSelected,
+                ]}
+              >
                 {goal}
               </Text>
-              <Text style={[
-                styles.goalLabel,
-                dailyGoal === goal && styles.goalLabelSelected
-              ]}>
+              <Text
+                style={[
+                  styles.goalLabel,
+                  dailyGoal === goal && styles.goalLabelSelected,
+                ]}
+              >
                 cards/day
               </Text>
             </Pressable>
@@ -161,7 +234,7 @@ export default function OnBoardingScreen() {
           <Text style={styles.buttonText}>Continue</Text>
         </Pressable>
       </View>
-    )
+    );
   }
 
   // STEP 4 — Study Time
@@ -172,19 +245,21 @@ export default function OnBoardingScreen() {
         <Text style={styles.subtitle}>We’ll optimize reminders</Text>
 
         <View style={styles.goalGrid}>
-          {STUDY_TIMES.map(time => (
+          {STUDY_TIMES.map((time) => (
             <Pressable
               key={time}
               style={[
                 styles.goalChip,
-                studyTime === time && styles.goalChipSelected
+                studyTime === time && styles.goalChipSelected,
               ]}
               onPress={() => setStudyTime(time)}
             >
-              <Text style={[
-                styles.goalLabel,
-                studyTime === time && styles.goalLabelSelected
-              ]}>
+              <Text
+                style={[
+                  styles.goalLabel,
+                  studyTime === time && styles.goalLabelSelected,
+                ]}
+              >
                 {time}
               </Text>
             </Pressable>
@@ -195,7 +270,7 @@ export default function OnBoardingScreen() {
           <Text style={styles.buttonText}>Continue</Text>
         </Pressable>
       </View>
-    )
+    );
   }
 
   // STEP 5 — Study Style (FINAL)
@@ -205,19 +280,21 @@ export default function OnBoardingScreen() {
       <Text style={styles.subtitle}>We’ll tailor your experience</Text>
 
       <View style={styles.subjectGrid}>
-        {STUDY_STYLES.map(style => (
+        {STUDY_STYLES.map((style) => (
           <Pressable
             key={style}
             style={[
               styles.subjectChip,
-              studyStyle === style && styles.subjectChipSelected
+              studyStyle === style && styles.subjectChipSelected,
             ]}
             onPress={() => setStudyStyle(style)}
           >
-            <Text style={[
-              styles.subjectChipText,
-              studyStyle === style && styles.subjectChipTextSelected
-            ]}>
+            <Text
+              style={[
+                styles.subjectChipText,
+                studyStyle === style && styles.subjectChipTextSelected,
+              ]}
+            >
               {style}
             </Text>
           </Pressable>
@@ -225,14 +302,18 @@ export default function OnBoardingScreen() {
       </View>
 
       {loading ? (
-        <ActivityIndicator size="large" color="#6C63FF" style={{ marginTop: 24 }} />
+        <ActivityIndicator
+          size="large"
+          color="#6C63FF"
+          style={{ marginTop: 24 }}
+        />
       ) : (
         <Pressable style={styles.button} onPress={handleFinish}>
           <Text style={styles.buttonText}>Let's go 🚀</Text>
         </Pressable>
       )}
     </View>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
@@ -348,4 +429,4 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
-})
+});

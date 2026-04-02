@@ -1,14 +1,18 @@
-import { View, Text, StyleSheet, Pressable } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Ionicons } from '@expo/vector-icons'
+import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { useStudyPal } from '../components/hooks/useStudyPal';
+import StudyPalCard from '../components/ui/StudyPalCard';
 
 export default function StudyScreen() {
-  const insets = useSafeAreaInsets()
+  const insets = useSafeAreaInsets();
+  const { pal, message } = useStudyPal();
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 20 }]}>
       <Text style={styles.title}>Study</Text>
       <Text style={styles.subtitle}>Practice modes coming in Phase 3</Text>
+      <StudyPalCard pal={pal} message={message} />
 
       <View style={styles.grid}>
         {[
@@ -16,7 +20,7 @@ export default function StudyScreen() {
           { icon: '⚡', label: 'Speed Round', sub: 'Race against time' },
           { icon: '🔁', label: 'Spaced Repetition', sub: 'Smart scheduling' },
           { icon: '🤖', label: 'AI Practice', sub: 'Adaptive questions' },
-        ].map(item => (
+        ].map((item) => (
           <View key={item.label} style={styles.modeCard}>
             <Text style={styles.modeIcon}>{item.icon}</Text>
             <Text style={styles.modeLabel}>{item.label}</Text>
@@ -28,7 +32,7 @@ export default function StudyScreen() {
         ))}
       </View>
     </View>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
@@ -90,4 +94,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.5,
   },
-})
+});

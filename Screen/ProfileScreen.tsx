@@ -1,32 +1,31 @@
-import { View, Text, StyleSheet, Pressable } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { auth, db } from '../firebaseConfig'
-import { signOut } from 'firebase/auth'
-import { useState, useEffect } from 'react'
-import { doc, onSnapshot } from 'firebase/firestore'
-import { Ionicons } from '@expo/vector-icons'
+import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { auth, db } from '../firebaseConfig';
+import { signOut } from 'firebase/auth';
+import { useState, useEffect } from 'react';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function ProfileScreen() {
-  const insets = useSafeAreaInsets()
-  const uid = auth.currentUser?.uid ?? ''
-  const [userData, setUserData] = useState<any>(null)
+  const insets = useSafeAreaInsets();
+  const uid = auth.currentUser?.uid ?? '';
+  const [userData, setUserData] = useState<any>(null);
 
   useEffect(() => {
-    if (!uid) return
-    const ref = doc(db, 'users', uid)
+    if (!uid) return;
+    const ref = doc(db, 'users', uid);
     const unsubscribe = onSnapshot(ref, (snap) => {
-      if (snap.exists()) setUserData(snap.data())
-    })
-    return () => unsubscribe()
-  }, [uid])
+      if (snap.exists()) setUserData(snap.data());
+    });
+    return () => unsubscribe();
+  }, [uid]);
 
   const handleLogout = async () => {
-    await signOut(auth)
-  }
+    await signOut(auth);
+  };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 20 }]}>
-
       {/* Avatar + name */}
       <View style={styles.profileTop}>
         <View style={styles.avatar}>
@@ -61,7 +60,7 @@ export default function ProfileScreen() {
           { icon: 'notifications-outline', label: 'Notifications', soon: true },
           { icon: 'color-palette-outline', label: 'Appearance', soon: true },
           { icon: 'shield-outline', label: 'Privacy', soon: true },
-        ].map(item => (
+        ].map((item) => (
           <Pressable key={item.label} style={styles.settingsItem}>
             <Ionicons name={item.icon as any} size={20} color="#6C63FF" />
             <Text style={styles.settingsLabel}>{item.label}</Text>
@@ -70,7 +69,12 @@ export default function ProfileScreen() {
                 <Text style={styles.soonText}>Soon</Text>
               </View>
             )}
-            <Ionicons name="chevron-forward" size={16} color="#333" style={{ marginLeft: 'auto' }} />
+            <Ionicons
+              name="chevron-forward"
+              size={16}
+              color="#333"
+              style={{ marginLeft: 'auto' }}
+            />
           </Pressable>
         ))}
       </View>
@@ -80,9 +84,8 @@ export default function ProfileScreen() {
         <Ionicons name="log-out-outline" size={20} color="#ff4d4d" />
         <Text style={styles.logoutText}>Log out</Text>
       </Pressable>
-
     </View>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
@@ -190,4 +193,4 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
   },
-})
+});

@@ -1,25 +1,29 @@
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native'
-import { useNavigation } from '@react-navigation/native'
-import { NativeStackNavigationProp } from '@react-navigation/native-stack'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Ionicons } from '@expo/vector-icons'
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 
 type AuthStackParamList = {
-  Welcome: undefined
-  Signup: undefined
-  Login: undefined
-  OnBoarding: { uid: string; username: string }
-}
+  Welcome: undefined;
+  Signup: undefined;
+  Login: undefined;
+  OnBoarding: { uid: string; username: string };
+};
 
-type WelcomeNavProp = NativeStackNavigationProp<AuthStackParamList, 'Welcome'>
+type WelcomeNavProp = NativeStackNavigationProp<AuthStackParamList, 'Welcome'>;
 
 export default function WelcomeScreen() {
-  const navigation = useNavigation<WelcomeNavProp>()
-  const insets = useSafeAreaInsets()
+  const navigation = useNavigation<WelcomeNavProp>();
+  const insets = useSafeAreaInsets();
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom + 24 }]}>
-
+    <View
+      style={[
+        styles.container,
+        { paddingTop: insets.top, paddingBottom: insets.bottom + 24 },
+      ]}
+    >
       {/* Top section — branding */}
       <View style={styles.top}>
         <View style={styles.logoMark}>
@@ -31,8 +35,14 @@ export default function WelcomeScreen() {
 
       {/* Middle section — feature highlights */}
       <View style={styles.features}>
-        <Feature icon="flash-outline" text="Smart flashcards that adapt to you" />
-        <Feature icon="trending-up-outline" text="Track your progress every session" />
+        <Feature
+          icon="flash-outline"
+          text="Smart flashcards that adapt to you"
+        />
+        <Feature
+          icon="trending-up-outline"
+          text="Track your progress every session"
+        />
         <Feature icon="time-outline" text="Study less, remember more" />
       </View>
 
@@ -52,12 +62,13 @@ export default function WelcomeScreen() {
           onPress={() => navigation.navigate('Login')}
           activeOpacity={0.85}
         >
-          <Text style={styles.secondaryButtonText}>I already have an account</Text>
+          <Text style={styles.secondaryButtonText}>
+            I already have an account
+          </Text>
         </TouchableOpacity>
       </View>
-
     </View>
-  )
+  );
 }
 
 // small reusable feature row
@@ -69,7 +80,7 @@ function Feature({ icon, text }: { icon: any; text: string }) {
       </View>
       <Text style={styles.featureText}>{text}</Text>
     </View>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
@@ -169,4 +180,4 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
   },
-})
+});

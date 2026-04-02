@@ -1,27 +1,47 @@
-import { View, Text, StyleSheet, FlatList, Pressable } from 'react-native'
-import { useNavigation } from '@react-navigation/native'
-import { Ionicons } from '@expo/vector-icons'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import Button from '../../components/ui/Button'
-import type { FirestoreSubject } from '../../Service/subjectService'
+import { View, Text, StyleSheet, FlatList, Pressable } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Button from '../../components/ui/Button';
+import type { FirestoreSubject } from '../../Service/subjectService';
 
 export default function SubjectScreen({ route }: any) {
-  const { subject } = route.params as { subject: FirestoreSubject }
-  const navigation = useNavigation<any>()
-  const insets = useSafeAreaInsets()
+  const { subject } = route.params as { subject: FirestoreSubject };
+  const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
 
   // placeholder cards — will be replaced by Firestore subcollection in Phase 3
   const placeholderCards = [
-    { id: '1', question: 'What is the first concept in ' + subject.name + '?', answer: 'Coming soon — add cards with AI in Phase 3' },
-    { id: '2', question: 'What is the second concept in ' + subject.name + '?', answer: 'Coming soon — add cards with AI in Phase 3' },
-  ]
+    {
+      id: '1',
+      question: 'What is the first concept in ' + subject.name + '?',
+      answer: 'Coming soon — add cards with AI in Phase 3',
+    },
+    {
+      id: '2',
+      question: 'What is the second concept in ' + subject.name + '?',
+      answer: 'Coming soon — add cards with AI in Phase 3',
+    },
+    {
+      id: '3',
+      question: 'What is the third concept in ' + subject.name + '?',
+      answer: 'Coming soon — add cards with AI in Phase 3',
+    },
+    {
+      id: '4',
+      question: 'What is the forth concept in ' + subject.name + '?',
+      answer: 'Coming soon — add cards with AI in Phase 3',
+    },
+  ];
 
   return (
     <View style={styles.container}>
-
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
+        <Pressable
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
           <Ionicons name="arrow-back" size={22} color="#ffffff" />
         </Pressable>
         <Text style={styles.headerTitle}>{subject.name}</Text>
@@ -40,7 +60,9 @@ export default function SubjectScreen({ route }: any) {
           <View style={styles.statBadge}>
             <Ionicons name="time-outline" size={14} color="#6C63FF" />
             <Text style={styles.statText}>
-              {subject.lastStudied === 'Never' ? 'Not studied yet' : subject.lastStudied}
+              {subject.lastStudied === 'Never'
+                ? 'Not studied yet'
+                : subject.lastStudied}
             </Text>
           </View>
         </View>
@@ -51,9 +73,7 @@ export default function SubjectScreen({ route }: any) {
         data={placeholderCards}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
-        ListHeaderComponent={
-          <Text style={styles.listHeader}>FLASHCARDS</Text>
-        }
+        ListHeaderComponent={<Text style={styles.listHeader}>FLASHCARDS</Text>}
         renderItem={({ item, index }) => (
           <View style={styles.cardPreview}>
             <Text style={styles.cardNumber}>Card {index + 1}</Text>
@@ -75,7 +95,12 @@ export default function SubjectScreen({ route }: any) {
       <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 16 }]}>
         <Button
           label="Study Now 🚀"
-          onPress={() => navigation.navigate('StudyMode', { subject, cards: placeholderCards })}
+          onPress={() =>
+            navigation.navigate('StudyMode', {
+              subject,
+              cards: placeholderCards,
+            })
+          }
           fullWidth
         />
         <Button
@@ -85,9 +110,8 @@ export default function SubjectScreen({ route }: any) {
           fullWidth
         />
       </View>
-
     </View>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
@@ -205,4 +229,4 @@ const styles = StyleSheet.create({
     borderTopWidth: 0.5,
     borderTopColor: '#1a1a1a',
   },
-})
+});

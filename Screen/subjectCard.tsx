@@ -1,21 +1,26 @@
-import { View, Text, StyleSheet, Pressable } from 'react-native'
-import { useNavigation } from '@react-navigation/native'
-import { Ionicons } from '@expo/vector-icons'
-import type { FirestoreSubject } from '../Service/subjectService'
+import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
+import type { FirestoreSubject } from '../Service/subjectService';
 
-const SubjectCard = ({ item, onDelete }: {
-  item: FirestoreSubject
-  onDelete: () => void
+const SubjectCard = ({
+  item,
+  onDelete,
+}: {
+  item: FirestoreSubject;
+  onDelete: () => void;
 }) => {
-  const navigation = useNavigation<any>()
-  
+  const navigation = useNavigation<any>();
 
   return (
     <Pressable
       style={styles.subjectCard}
-      onPress={() => navigation.navigate('Home', {
-        screen: 'Subject', params: { subject: item }
-      })}
+      onPress={() =>
+        navigation.navigate('Home', {
+          screen: 'Subject',
+          params: { subject: item },
+        })
+      }
     >
       <Pressable onPress={onDelete} style={styles.removeBtn}>
         <Ionicons name="close-circle" size={18} color="#ff4444" />
@@ -25,10 +30,10 @@ const SubjectCard = ({ item, onDelete }: {
       <Text style={styles.subjectName}>{item.name}</Text>
       <Text style={styles.subjectLabel}>{item.cardCount} cards</Text>
     </Pressable>
-  )
-}
+  );
+};
 
-export default SubjectCard
+export default SubjectCard;
 
 const styles = StyleSheet.create({
   subjectCard: {
@@ -58,4 +63,4 @@ const styles = StyleSheet.create({
     color: '#888888',
     letterSpacing: 1,
   },
-})
+});

@@ -1,18 +1,38 @@
 import {
-  View, Text, StyleSheet, ScrollView, FlatList,
-  Pressable, Modal, TextInput, ActivityIndicator
-} from 'react-native'
-import { useNavigation } from '@react-navigation/native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { useState, useEffect } from 'react'
-import { Ionicons } from '@expo/vector-icons'
-import { auth, db } from '../../firebaseConfig'
-import { doc, onSnapshot } from 'firebase/firestore'
-import { getSubjects, addSubject, deleteSubject, FirestoreSubject } from '../../Service/subjectService'
-import SubjectCard from '../subjectCard'
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  FlatList,
+  Pressable,
+  Modal,
+  TextInput,
+  ActivityIndicator,
+} from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useState, useEffect } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { auth, db } from '../../firebaseConfig';
+import { doc, onSnapshot } from 'firebase/firestore';
+import {
+  getSubjects,
+  addSubject,
+  deleteSubject,
+  FirestoreSubject,
+} from '../../Service/subjectService';
+import SubjectCard from '../subjectCard';
+import { useStudyPal } from '../../components/hooks/useStudyPal';
+import StudyPalCard from '../../components/ui/StudyPalCard';
 
 // ── Continue studying card ──────────────────────────────
-const ContinueStudy = ({ item, onPress }: { item: FirestoreSubject, onPress: () => void }) => (
+const ContinueStudy = ({
+  item,
+  onPress,
+}: {
+  item: FirestoreSubject;
+  onPress: () => void;
+}) => (
   <Pressable style={styles.card} onPress={onPress}>
     <View style={styles.cardRow}>
       <View style={styles.cardLeft}>
@@ -27,90 +47,109 @@ const ContinueStudy = ({ item, onPress }: { item: FirestoreSubject, onPress: () 
       </View>
     </View>
   </Pressable>
-)
+);
 
 // ── Dashboard tool card ─────────────────────────────────
-const ToolCard = ({ icon, label, soon }: { icon: string, label: string, soon?: boolean }) => (
+const ToolCard = ({
+  icon,
+  label,
+  soon,
+  BETA,
+}: {
+  icon: string;
+  label: string;
+  soon?: boolean;
+  BETA?: boolean;
+}) => (
   <View style={styles.toolCard}>
     <Text style={styles.toolIcon}>{icon}</Text>
     <Text style={styles.toolLabel}>{label}</Text>
+    {BETA && (
+      <View style={styles.betaBadge}>
+        <Text style={styles.betaText}>BETA</Text>
+      </View>
+    )}
     {soon && (
       <View style={styles.soonBadge}>
         <Text style={styles.soonText}>Soon</Text>
       </View>
     )}
   </View>
-)
+);
 
 // ── HomeScreen ──────────────────────────────────────────
 export default function HomeScreen() {
-  const navigation = useNavigation<any>()
-  const insets = useSafeAreaInsets()
-  const uid = auth.currentUser?.uid ?? ''
+  const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
+  const uid = auth.currentUser?.uid ?? '';
 
   // state
-  const [userData, setUserData] = useState<any>(null)
-  const [subjectList, setSubjectList] = useState<FirestoreSubject[]>([])
-  const [loadingSubjects, setLoadingSubjects] = useState(true)
-  const [modalVisible, setModalVisible] = useState(false)
-  const [subjectName, setSubjectName] = useState('')
-  const [selectedIcon, setSelectedIcon] = useState('📚')
-  const [nameError, setNameError] = useState('')
+  const [userData, setUserData] = useState<any>(null);
+  const [subjectList, setSubjectList] = useState<FirestoreSubject[]>([]);
+  const [loadingSubjects, setLoadingSubjects] = useState(true);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [subjectName, setSubjectName] = useState('');
+  const [selectedIcon, setSelectedIcon] = useState('📚');
+  const [nameError, setNameError] = useState('');
+  const { pal, message } = useStudyPal();
 
   // real-time user data listener
   useEffect(() => {
-    if (!uid) return
-    const ref = doc(db, 'users', uid)
+    if (!uid) return;
+    const ref = doc(db, 'users', uid);
     const unsubscribe = onSnapshot(ref, (snap) => {
-      if (snap.exists()) setUserData(snap.data())
-    })
-    return () => unsubscribe()
-  }, [uid])
+      if (snap.exists()) setUserData(snap.data());
+    });
+    return () => unsubscribe();
+  }, [uid]);
 
   // load subjects once on mount
   useEffect(() => {
-    if (!uid) return
+    if (!uid) return;
     const load = async () => {
-      const subs = await getSubjects(uid)
-      setSubjectList(subs)
-      setLoadingSubjects(false)
-    }
-    load()
-  }, [uid])
+      const subs = await getSubjects(uid);
+      setSubjectList(subs);
+      setLoadingSubjects(false);
+    };
+    load();
+  }, [uid]);
 
   const getGreeting = () => {
-    const time = new Date().getHours()
-    if (time < 12) return 'Good Morning 👋'
-    if (time < 18) return 'Good Afternoon 🌞'
-    return 'Good Evening 🌙'
-  }
+    const time = new Date().getHours();
+    if (time < 12) return 'Good Morning 👋';
+    if (time < 18) return 'Good Afternoon 🌞';
+    return 'Good Evening 🌙';
+  };
 
   const handleAddSubject = async () => {
     if (subjectName.trim().length < 2) {
-      setNameError('Name must be at least 2 characters')
-      return
+      setNameError('Name must be at least 2 characters');
+      return;
     }
-    setNameError('')
-    await addSubject(uid, subjectName.trim(), selectedIcon)
-    const updated = await getSubjects(uid)
-    setSubjectList(updated)
-    setSubjectName('')
-    setSelectedIcon('📚')
-    setModalVisible(false)
-  }
+    setNameError('');
+    await addSubject(uid, subjectName.trim(), selectedIcon);
+    const updated = await getSubjects(uid);
+    setSubjectList(updated);
+    setSubjectName('');
+    setSelectedIcon('📚');
+    setModalVisible(false);
+  };
 
   const handleDeleteSubject = async (subjectId: string) => {
-    await deleteSubject(uid, subjectId)
-    setSubjectList(prev => prev.filter(s => s.id !== subjectId))
-  }
+    await deleteSubject(uid, subjectId);
+    setSubjectList((prev) => prev.filter((s) => s.id !== subjectId));
+  };
 
   const activeSessions = subjectList.filter(
-    s => s.lastStudied && s.lastStudied !== 'Never'
-  )
+    (s) => s.lastStudied && s.lastStudied !== 'Never',
+  );
 
   const progressPercent = userData
-    ? Math.min((userData.progress ?? 0) / (userData.dailyGoal ?? 10) * 100, 100)
-    : 0
+    ? Math.min(
+        ((userData.progress ?? 0) / (userData.dailyGoal ?? 10)) * 100,
+        100,
+      )
+    : 0;
 
   // loading state
   if (!userData) {
@@ -118,12 +157,11 @@ export default function HomeScreen() {
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#6C63FF" />
       </View>
-    )
+    );
   }
 
   return (
     <View style={styles.container}>
-
       {/* Fixed header */}
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <View>
@@ -131,9 +169,7 @@ export default function HomeScreen() {
           <Text style={styles.username}>{userData.username}</Text>
         </View>
         <Pressable style={styles.streakBadge}>
-          <Text style={styles.streakText}>
-            🔥 {userData.streak ?? 0} days
-          </Text>
+          <Text style={styles.streakText}>🔥 {userData.streak ?? 0} days</Text>
         </Pressable>
       </View>
 
@@ -141,7 +177,6 @@ export default function HomeScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-
         {/* Goal card */}
         <View style={styles.goalCard}>
           <View style={styles.goalCardTop}>
@@ -154,15 +189,17 @@ export default function HomeScreen() {
             Complete {userData.dailyGoal ?? 10} study sessions
           </Text>
           <View style={styles.progressBarBg}>
-            <View style={[
-              styles.progressBarFill,
-              { width: `${progressPercent}%` }
-            ]} />
+            <View
+              style={[styles.progressBarFill, { width: `${progressPercent}%` }]}
+            />
           </View>
           <Text style={styles.progressLabel}>
-            {progressPercent === 100 ? 'Goal complete! 🎉' : `${Math.round(progressPercent)}% done`}
+            {progressPercent === 100
+              ? 'Goal complete! 🎉'
+              : `${Math.round(progressPercent)}% done`}
           </Text>
         </View>
+        <StudyPalCard pal={pal} message={message} />
 
         {/* Subjects section */}
         <View style={styles.section}>
@@ -214,10 +251,12 @@ export default function HomeScreen() {
               renderItem={({ item }) => (
                 <ContinueStudy
                   item={item}
-                  onPress={() => navigation.navigate('Home', {
-                    screen: 'Subject',
-                    params: { subject: item }
-                  })}
+                  onPress={() =>
+                    navigation.navigate('Home', {
+                      screen: 'Subject',
+                      params: { subject: item },
+                    })
+                  }
                 />
               )}
               contentContainerStyle={{ gap: 12 }}
@@ -231,13 +270,12 @@ export default function HomeScreen() {
             <Text style={styles.sectionTitle}>TOOLS</Text>
           </View>
           <View style={styles.toolsGrid}>
-            <ToolCard icon="🤖" label="AI Tutor" soon />
+            <ToolCard icon="🤖" label="AI Tutor" BETA />
             <ToolCard icon="📄" label="PDF to Cards" soon />
             <ToolCard icon="🎮" label="Practice" soon />
             <ToolCard icon="📊" label="Stats" soon />
           </View>
         </View>
-
       </ScrollView>
 
       {/* Add subject modal */}
@@ -247,25 +285,32 @@ export default function HomeScreen() {
         animationType="fade"
         onRequestClose={() => setModalVisible(false)}
       >
-        <Pressable style={styles.overlay} onPress={() => setModalVisible(false)}>
-          <Pressable style={styles.modalCard} onPress={(e) => e.stopPropagation()}>
-
+        <Pressable
+          style={styles.overlay}
+          onPress={() => setModalVisible(false)}
+        >
+          <Pressable
+            style={styles.modalCard}
+            onPress={(e) => e.stopPropagation()}
+          >
             <Text style={styles.modalTitle}>Add Subject</Text>
 
             <Text style={styles.modalLabel}>Pick an icon</Text>
             <View style={styles.iconRow}>
-              {['📚', '📐', '🧬', '🔢', '🎨', '🧪', '💻', '🌍', '🏛', '🎵'].map((emoji) => (
-                <Pressable
-                  key={emoji}
-                  style={[
-                    styles.iconOption,
-                    selectedIcon === emoji && styles.iconSelected
-                  ]}
-                  onPress={() => setSelectedIcon(emoji)}
-                >
-                  <Text style={styles.iconEmoji}>{emoji}</Text>
-                </Pressable>
-              ))}
+              {['📚', '📐', '🧬', '🔢', '🎨', '🧪', '💻', '🌍', '🏛', '🎵'].map(
+                (emoji) => (
+                  <Pressable
+                    key={emoji}
+                    style={[
+                      styles.iconOption,
+                      selectedIcon === emoji && styles.iconSelected,
+                    ]}
+                    onPress={() => setSelectedIcon(emoji)}
+                  >
+                    <Text style={styles.iconEmoji}>{emoji}</Text>
+                  </Pressable>
+                ),
+              )}
             </View>
 
             <Text style={styles.modalLabel}>Subject name</Text>
@@ -275,8 +320,8 @@ export default function HomeScreen() {
               placeholderTextColor="#555"
               value={subjectName}
               onChangeText={(text) => {
-                setSubjectName(text)
-                if (text.length >= 2) setNameError('')
+                setSubjectName(text);
+                if (text.length >= 2) setNameError('');
               }}
               autoFocus
             />
@@ -292,13 +337,11 @@ export default function HomeScreen() {
             <Pressable onPress={() => setModalVisible(false)}>
               <Text style={styles.cancelText}>Cancel</Text>
             </Pressable>
-
           </Pressable>
         </Pressable>
       </Modal>
-
     </View>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
@@ -500,6 +543,18 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.5,
   },
+  betaBadge: {
+    backgroundColor: '#2a2a3e',
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+  },
+  betaText: {
+    fontSize: 10,
+    color: '#3ceb70',
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.75)',
@@ -576,4 +631,4 @@ const styles = StyleSheet.create({
     fontSize: 14,
     paddingVertical: 4,
   },
-})
+});

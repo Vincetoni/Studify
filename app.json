@@ -38,9 +38,6 @@
     "updates": {
       "url": "https://u.expo.dev/fa97a887-f105-4744-a995-0260cfd9291b"
     },
-    "plugins": [
-      "@react-native-firebase/app",
-      "@react-native-firebase/auth"
-    ]
+    "plugins": ["@react-native-firebase/app", "@react-native-firebase/auth"]
   }
 }
