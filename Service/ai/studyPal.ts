@@ -13,7 +13,7 @@ export const STUDY_PALS: Record<string, StudyPalType> = {
   },
   bubbles: {
     name: 'bubbles',
-    emoji: '🎮', // i will change this to icons later
+    emoji: '🎮',
     personality: 'playful',
   },
 };

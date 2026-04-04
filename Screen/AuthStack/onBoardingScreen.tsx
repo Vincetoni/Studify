@@ -119,9 +119,6 @@ export default function OnBoardingScreen() {
         });
       } else {
         console.log('Navigating to Processing (new user)');
-        navigation.replace('Processing', {
-          onComplete: route.params?.onComplete,
-        });
       }
     } catch (err: any) {
       console.log('Onboarding error:', err.message);

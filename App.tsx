@@ -8,10 +8,12 @@ import { Ionicons } from '@expo/vector-icons';
 import * as SystemUI from 'expo-system-ui';
 SystemUI.setBackgroundColorAsync('#000000');
 import { useEffect, useState } from 'react';
+import { View, ActivityIndicator, Text, Button } from 'react-native';
 import { auth } from './firebaseConfig';
 import {
   createUserWithEmailAndPassword,
   onAuthStateChanged,
+  signOut,
   User,
 } from 'firebase/auth';
 import { getDoc, doc } from 'firebase/firestore';
@@ -37,6 +39,7 @@ type RootStackParamList = {
     onComplete?: () => void;
   };
   Processing: undefined;
+  MissingData: undefined;
 };
 
 type AuthStackParamList = {
@@ -126,11 +129,32 @@ function AuthStackScreen() {
   );
 }
 
+// 🔥 NEW: Emergency logout screen for missing user data
+function MissingDataScreen() {
+  return (
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0f0f0f' }}>
+      <Text style={{ color: 'white', fontSize: 18, marginBottom: 20 }}>
+        User data not found. Please login again.
+      </Text>
+      <Button 
+        title="Logout" 
+        onPress={() => signOut(auth)} 
+        color="#6C63FF"
+      />
+    </View>
+  );
+}
+
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [initializing, setInitializing] = useState(true);
   const [onboardingCompleted, setOnboardingCompleted] = useState(false);
+  const [hasUserData, setHasUserData] = useState(false); // 🔥 NEW
   const [checkTrigger, setCheckTrigger] = useState(0);
+
+  if (__DEV__) {
+    console.log('Auth state:', auth.currentUser?.uid);
+  }
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
@@ -141,10 +165,21 @@ export default function App() {
           if (userDoc.exists()) {
             const data = userDoc.data();
             setOnboardingCompleted(data.onboardingCompleted ?? false);
+            setHasUserData(true); // 🔥 NEW: mark that we have data
+          } else {
+            // 🔥 NEW: User auth exists but NO Firestore data (you deleted it!)
+            console.log('User auth exists but Firestore doc missing - forcing re-onboarding');
+            setHasUserData(false);
+            setOnboardingCompleted(false);
+            // Optional: Auto-logout after 3 seconds or show emergency screen
           }
         } catch (err) {
           console.log('Error fetching user doc:', err);
+          setHasUserData(false);
         }
+      } else {
+        setHasUserData(false);
+        setOnboardingCompleted(false);
       }
       setUser(authUser);
       if (initializing) setInitializing(false);
@@ -152,13 +187,22 @@ export default function App() {
     return unsubscribe;
   }, []);
 
-  if (initializing) return null;
+  if (initializing) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0f0f0f' }}>
+        <ActivityIndicator size="large" color="#6C63FF" />
+      </View>
+    );
+  }
 
   return (
     <NavigationContainer>
       <RootStack.Navigator screenOptions={{ headerShown: false }}>
         {user ? (
-          onboardingCompleted ? (
+          !hasUserData ? (
+            // 🔥 NEW: Auth exists but no Firestore data - show emergency logout
+            <RootStack.Screen name="MissingData" component={MissingDataScreen} />
+          ) : onboardingCompleted ? (
             // ✅ existing user who finished onboarding
             <RootStack.Screen name="Main" component={MainTab} />
           ) : (
@@ -167,7 +211,12 @@ export default function App() {
                 name="Onboarding"
                 component={OnBoardingScreen}
                 initialParams={{
-                  onComplete: () => setOnboardingCompleted(true),
+                  uid: user.uid, // 🔥 NEW: pass uid to onboarding
+                  username: user.displayName || '', // 🔥 NEW: pass username
+                  onComplete: () => {
+                    setOnboardingCompleted(true);
+                    setHasUserData(true);
+                  },
                 }}
               />
               <RootStack.Screen
