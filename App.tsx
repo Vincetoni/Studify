@@ -75,7 +75,11 @@ function AppHomeStack() {
       }}
     >
       <HomeStack.Screen name="HomeMain" component={HomeScreen} />
-      <HomeStack.Screen name="Subject" component={SubjectScreen} />
+      <HomeStack.Screen name="Subject" component={SubjectScreen}
+       options={{
+          tabBarStyle: { display: 'none' } // This hides the entire bottom tab bar
+           }} 
+        />
       <HomeStack.Screen name="StudyMode" component={StudyModeScreen} />
     </HomeStack.Navigator>
   );
@@ -132,15 +136,18 @@ function AuthStackScreen() {
 // 🔥 NEW: Emergency logout screen for missing user data
 function MissingDataScreen() {
   return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0f0f0f' }}>
+    <View
+      style={{
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#0f0f0f',
+      }}
+    >
       <Text style={{ color: 'white', fontSize: 18, marginBottom: 20 }}>
         User data not found. Please login again.
       </Text>
-      <Button 
-        title="Logout" 
-        onPress={() => signOut(auth)} 
-        color="#6C63FF"
-      />
+      <Button title="Logout" onPress={() => signOut(auth)} color="#6C63FF" />
     </View>
   );
 }
@@ -168,7 +175,9 @@ export default function App() {
             setHasUserData(true); // 🔥 NEW: mark that we have data
           } else {
             // 🔥 NEW: User auth exists but NO Firestore data (you deleted it!)
-            console.log('User auth exists but Firestore doc missing - forcing re-onboarding');
+            console.log(
+              'User auth exists but Firestore doc missing - forcing re-onboarding',
+            );
             setHasUserData(false);
             setOnboardingCompleted(false);
             // Optional: Auto-logout after 3 seconds or show emergency screen
@@ -189,7 +198,14 @@ export default function App() {
 
   if (initializing) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0f0f0f' }}>
+      <View
+        style={{
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: '#0f0f0f',
+        }}
+      >
         <ActivityIndicator size="large" color="#6C63FF" />
       </View>
     );
@@ -201,7 +217,10 @@ export default function App() {
         {user ? (
           !hasUserData ? (
             // 🔥 NEW: Auth exists but no Firestore data - show emergency logout
-            <RootStack.Screen name="MissingData" component={MissingDataScreen} />
+            <RootStack.Screen
+              name="MissingData"
+              component={MissingDataScreen}
+            />
           ) : onboardingCompleted ? (
             // ✅ existing user who finished onboarding
             <RootStack.Screen name="Main" component={MainTab} />

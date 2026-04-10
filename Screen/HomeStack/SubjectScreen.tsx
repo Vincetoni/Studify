@@ -11,10 +11,12 @@ import Button from '../../components/ui/Button'
 import type { FirestoreSubject } from '../../Service/subjectService'
 import {
   getFlashcards,
-  addFlashcard,
+  //addFlashcard,
   deleteFlashcard,
   Flashcard
 } from '../../Service/flashcardService'
+import { generateFlashcards } from '../../Service/aiService'
+import { addFlashcard } from '../../Service/flashcardService'
 
 export default function SubjectScreen({ route }: any) {
   const { subject } = route.params as { subject: FirestoreSubject }
@@ -29,6 +31,25 @@ export default function SubjectScreen({ route }: any) {
   const [answer, setAnswer] = useState('')
   const [adding, setAdding] = useState(false)
   const [error, setError] = useState('')
+  const [ aiModalVisible, setAiModalVisible] = useState(false)
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiTopic, setAiTopic] = useState('')
+
+  const handleGenerateCards = async () => {
+    if (aiTopic.trim().length < 2) return
+    setAiLoading(true)
+
+    const generated = await generateFlashcards(aiTopic, 8)
+
+    for (const card of generated) {
+      await addFlashcard(uid, subject.id, card.question, card.answer)
+    }
+
+    await loadCards()
+    setAiTopic('')
+    setAiModalVisible(false)
+    setAiLoading(false)
+  }
 
   useEffect(() => {
     loadCards()
@@ -74,12 +95,22 @@ export default function SubjectScreen({ route }: any) {
           <Ionicons name="arrow-back" size={22} color="#ffffff" />
         </Pressable>
         <Text style={styles.headerTitle}>{subject.name}</Text>
-        <Pressable
-          style={styles.addCardBtn}
-          onPress={() => setModalVisible(true)}
-        >
-          <Ionicons name="add" size={22} color="#6C63FF" />
-        </Pressable>
+        
+
+        <View style={{flexDirection: 'row', gap: 7}}>
+          <Pressable 
+           style={styles.addCardBtn}
+           onPress={() => setAiModalVisible(true)}
+          >
+            <Text style={{fontSize: 18}}>🐺</Text>
+          </Pressable>
+           <Pressable 
+           style={styles.addCardBtn}
+           onPress={() => setModalVisible(true)}
+          >
+            <Ionicons name='add' size={22} color='#6c63ff' />
+          </Pressable>
+        </View>
       </View>
 
       {/* Subject info */}
@@ -126,7 +157,7 @@ export default function SubjectScreen({ route }: any) {
                 </Pressable>
               </View>
               <Text style={styles.cardQuestion}>{item.question}</Text>
-              <Text style={styles.cardAnswer}>{item.answer}</Text>
+              
             </View>
           )}
           ListEmptyComponent={
@@ -225,6 +256,56 @@ export default function SubjectScreen({ route }: any) {
           </Pressable>
         </Pressable>
       </Modal>
+      
+      <Modal
+        visible={aiModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setAiModalVisible(false)}
+      >
+  <Pressable style={styles.overlay} onPress={() => setAiModalVisible(false)}>
+    <Pressable style={styles.modalCard} onPress={(e) => e.stopPropagation()}>
+
+      <Text style={styles.modalTitle}>🤖 Generate with AI</Text>
+      <Text style={{ color: '#888', fontSize: 13, marginTop: -4 }}>
+        Type a topic and Claude will create flashcards instantly
+      </Text>
+
+      <Text style={styles.modalLabel}>TOPIC</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="e.g. Photosynthesis, World War 2, Newton's Laws"
+        placeholderTextColor="#444"
+        value={aiTopic}
+        onChangeText={setAiTopic}
+        autoFocus
+      />
+
+      {aiLoading ? (
+        <View style={{ alignItems: 'center', gap: 12, paddingVertical: 8 }}>
+          <ActivityIndicator size="large" color="#6C63FF" />
+          <Text style={{ color: '#888', fontSize: 13 }}>
+            Claude is generating your cards...
+          </Text>
+        </View>
+      ) : (
+        <Button
+          label="Generate 8 cards ✨"
+          onPress={handleGenerateCards}
+          fullWidth
+        />
+      )}
+
+      <Pressable onPress={() => {
+        setAiModalVisible(false)
+        setAiTopic('')
+      }}>
+        <Text style={styles.cancelText}>Cancel</Text>
+      </Pressable>
+
+    </Pressable>
+  </Pressable>
+</Modal>
 
     </View>
   )
