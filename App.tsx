@@ -75,11 +75,7 @@ function AppHomeStack() {
       }}
     >
       <HomeStack.Screen name="HomeMain" component={HomeScreen} />
-      <HomeStack.Screen name="Subject" component={SubjectScreen}
-       options={{
-          tabBarStyle: { display: 'none' } // This hides the entire bottom tab bar
-           }} 
-        />
+      <HomeStack.Screen name="Subject" component={SubjectScreen}/>
       <HomeStack.Screen name="StudyMode" component={StudyModeScreen} />
     </HomeStack.Navigator>
   );
